@@ -101,7 +101,7 @@ func nonRedundant(list []string) (result []string) {
 	return
 }
 
-func max(a, b uint64) uint64 {
+func max(a, b int) int {
 	if a > b {
 		return a
 	}

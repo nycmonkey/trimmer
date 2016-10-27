@@ -17,12 +17,12 @@ var (
 )
 
 const (
-	MaxFreq    = uint64(50)
-	threshhold = uint64(10)
+	MaxFreq           = 50
+	DefaultThreshhold = 12
 )
 
 type Interface interface {
-	Trim(string) (string, bool)
+	Trim(string, ...int) (string, bool)
 }
 
 type nameAnalyzer struct {
@@ -49,7 +49,7 @@ func NewNameAnalyzer(pathToCounterData string) (na *nameAnalyzer, err error) {
 	return
 }
 
-func excludeNgram(ng string, df uint64) bool {
+func excludeNgram(ng string, df int) bool {
 	if !letters.MatchString(ng) {
 		return true
 	}
@@ -62,7 +62,11 @@ func excludeNgram(ng string, df uint64) bool {
 	return false
 }
 
-func (na nameAnalyzer) Trim(name string) (phrase string, ok bool) {
+func (na nameAnalyzer) Trim(name string, threshhold ...int) (phrase string, ok bool) {
+	th := DefaultThreshhold
+	if len(threshhold) > 0 {
+		th = threshhold[0]
+	}
 	tokens := stringy.MSAnalyze(name)
 	switch len(tokens) {
 	case 0:
@@ -71,7 +75,7 @@ func (na nameAnalyzer) Trim(name string) (phrase string, ok bool) {
 		return tokens[0], true
 	}
 	phrase = strings.Join(tokens, "_")
-	df := max(na.ctr.Count([]byte(phrase)), uint64(1))
+	df := max(int(na.ctr.Count([]byte(phrase))), 1)
 	if excludeNgram(phrase, df) {
 		return "", false
 	}
@@ -81,8 +85,8 @@ func (na nameAnalyzer) Trim(name string) (phrase string, ok bool) {
 			return strings.Replace(phrase, "_", " ", -1), true
 		}
 		phrase2 := strings.Join(tokens, "_")
-		df2 := max(na.ctr.Count([]byte(phrase2)), 1)
-		if (df2 > threshhold) || excludeNgram(phrase2, df2) {
+		df2 := max(int(na.ctr.Count([]byte(phrase2))), 1)
+		if (df2 > th) || excludeNgram(phrase2, df2) {
 			return strings.Replace(phrase, "_", " ", -1), true
 		}
 		phrase = phrase2
