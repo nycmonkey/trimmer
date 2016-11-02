@@ -18,7 +18,7 @@ var (
 
 const (
 	MaxFreq           = 50
-	DefaultThreshhold = 12
+	DefaultThreshhold = 4
 )
 
 type Interface interface {
