@@ -1,14 +1,13 @@
 package trimmer
 
 import (
-	"bufio"
-	"fmt"
 	"io"
 	"strings"
 
 	boom "github.com/tylertreat/BoomFilters"
 )
 
+// Counter is implemented to track how often a string occurs in a corpus / set
 type Counter interface {
 	Add([]byte)
 	Count([]byte) uint64
@@ -18,10 +17,6 @@ type Counter interface {
 
 type cmsCounter struct {
 	cms *boom.CountMinSketch
-}
-
-type mapCounter struct {
-	m map[string]uint64
 }
 
 func (ctr *cmsCounter) Add(t []byte) {
@@ -38,47 +33,6 @@ func (ctr *cmsCounter) Export(w io.Writer) (int, error) {
 
 func (ctr *cmsCounter) Import(r io.Reader) (int, error) {
 	return ctr.cms.ReadDataFrom(r)
-}
-
-func (ctr *mapCounter) Add(t []byte) {
-	ctr.m[string(t)]++
-}
-
-func (ctr *mapCounter) Count(t []byte) uint64 {
-	return ctr.m[string(t)]
-}
-
-func (ctr *mapCounter) Import(r io.Reader) (n int, err error) {
-	scanner := bufio.NewScanner(r)
-	var token string
-	var count uint64
-	var fields int
-	for scanner.Scan() {
-		fields, err = fmt.Sscanf(scanner.Text(), "%d %s", &count, &token)
-		if err != nil {
-			return
-		}
-		if fields != 2 {
-			err = fmt.Errorf("expected to parse an integer and a string, but got %d fields", fields)
-			return
-		}
-		ctr.m[token] = count
-		n++
-	}
-	err = scanner.Err()
-	return
-}
-
-func (ctr *mapCounter) Export(w io.Writer) (n int, err error) {
-	for k, v := range ctr.m {
-		var n1 int
-		n1, err = fmt.Fprintln(w, k, v)
-		n += n1
-		if err != nil {
-			return
-		}
-	}
-	return
 }
 
 // nonRedundant filters out strings that have shorter prefixes in the
@@ -102,7 +56,7 @@ func nonRedundant(list []string) (result []string) {
 }
 
 func max(a, b int) int {
-	if a > b {
+	if a >= b {
 		return a
 	}
 	return b
